@@ -1,19 +1,25 @@
-package com.employee.api.service;
+package com.employee.api.service.impl;
 
 import com.employee.api.dto.DepartmentDto;
 import com.employee.api.entity.Department;
 import com.employee.api.exception.ResourceNotFoundException;
 import com.employee.api.mapper.DepartmentMapper;
 import com.employee.api.repository.DepartmentRepository;
+import com.employee.api.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.function.Supplier;
+
+import static com.employee.api.service.common.CommonService.getNotFoundExceptionSupplier;
+
 @Service
 @RequiredArgsConstructor // final 필드에 대한 생성자 자동 생성
-@Transactional// 서비스 계층에서 트랜잭션 관리, 트랜잭션: 서비스 메서드가 실행될 때 트랜잭션이 시작되고, 메서드가 정상적으로 완료되면 트랜잭션이 커밋되고, 예외가 발생하면 롤백됩니다.
+@Transactional // 서비스 계층에서 트랜잭션 관리, 트랜잭션: 서비스 메서드가 실행될 때 트랜잭션이 시작되고, 메서드가 정상적으로 완료되면 트랜잭션이 커밋되고, 예외가 발생하면 롤백됩니다.
+// 영속성 컨텍스트가 있어서 save 메서드 호출하지 않아도 됨
 public class DepartmentServiceImpl  implements DepartmentService {
     private final DepartmentRepository departmentRepository;
 
@@ -40,27 +46,45 @@ public class DepartmentServiceImpl  implements DepartmentService {
         성능 최적화(필요한 데이터만 포함), 명확한 계약(API 사용자에게 명확한 데이터 구조 제공)
         return DepartmentMapper.mapToDepartmentDto(department);
         */
-        departmentRepository.findById(departmentId) // Oprional<Department>임
+        return departmentRepository.findById(departmentId) // Oprional<Department>임
                 //.map(department -> DepartmentMapper.mapToDepartmentDto(department)); // Entity => DTO 변환
                 .map(DepartmentMapper::mapToDepartmentDto) // Entity => DTO 변환. Optional<DepartmentDto> 반환
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Department is not exists with a given id: " + departmentId,
-                        HttpStatus.NOT_FOUND));// Optional이 비어있을 때 예외 발생
-        return ;
+                .orElseThrow(getNotFoundExceptionSupplier(
+                        "Department is not exists with a given id: ", departmentId));// Optional이 비어있을 때 예외 발생
     }
+
 
     @Override
     public List<DepartmentDto> getAllDepartments() {
-        return List.of();
+        List<Department> departments = departmentRepository.findAll();
+        // List<Department> => Stream<Department>
+        return departments.stream() // Stream<Department> (엔티티를 디티오로 바꾸기 위해 stream 사용)
+                .map(DepartmentMapper::mapToDepartmentDto) // Stream<DepartmentDto> (엔티티 => DTO 변환)
+                // Stream<DepartmentDto> => List<DepartmentDto>
+                .toList(); // List<DepartmentDto> (Stream => List)
+                //.map((department) -> DepartmentMapper.mapToDepartmentDto(department))
     }
 
     @Override
     public DepartmentDto updateDepartment(Long departmentId, DepartmentDto updatedDepartment) {
-        return null;
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(getNotFoundExceptionSupplier("Department is not exists with a given id:", departmentId)
+                );
+        // setter 호출해서 변경
+        department.setDepartmentName(updatedDepartment.getDepartmentName());
+        department.setDepartmentDescription(updatedDepartment.getDepartmentDescription());
+
+        // Department savedDepartment = departmentRepository.save(department);
+
+        // Entity => DTO 변환
+        return DepartmentMapper.mapToDepartmentDto(department);
     }
 
     @Override
     public void deleteDepartment(Long departmentId) {
-
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(getNotFoundExceptionSupplier("Department is not exists with a given id:", departmentId)
+                );
+        departmentRepository.delete(department);
     }
 }
