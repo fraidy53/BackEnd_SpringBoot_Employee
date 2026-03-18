@@ -61,8 +61,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         // N+1 문제 발생 (Employee를 조회할 때 Department도 함께 조회하는 경우)
         List<Employee> employees = employeeRepository.findAll();
         return employees.stream()
-                //.map(EmployeeMapper::mapToEmployeeDto) // id만 가져오는 것 (Lazy로 해서 쿼리가 1개임)
-                .map(EmployeeMapper::mapToEmployeeDepartmentDto) // id + department 정보까지 가져오는 것 (Fetch Join과 유사)
+                .map(EmployeeMapper::mapToEmployeeDto) // id만 가져오는 것 (Lazy로 해서 쿼리가 1개임)
+                //.map(EmployeeMapper::mapToEmployeeDepartmentDto) // id + department 정보까지 가져오는 것 (Fetch Join과 유사)
                 // Lazy로 하면 Employee를 조회할 때 Department는 실제로 필요한 시점까지 조회하지 않음 (프록시 객체로 대체)
                 // Eager로 하면 Employee를 조회할 때 Department도 함께 조회 (Fetch Join과 유사)
                 .toList();
