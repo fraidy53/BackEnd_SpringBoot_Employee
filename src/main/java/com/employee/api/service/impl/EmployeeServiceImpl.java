@@ -1,6 +1,7 @@
 package com.employee.api.service.impl;
 
 import com.employee.api.dto.EmployeeDto;
+import com.employee.api.dto.PageResponse;
 import com.employee.api.entity.Department;
 import com.employee.api.entity.Employee;
 import com.employee.api.exception.ResourceNotFoundException;
@@ -9,6 +10,10 @@ import com.employee.api.repository.DepartmentRepository;
 import com.employee.api.repository.EmployeeRepository;
 import com.employee.api.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +73,30 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .toList();
         //.map((employee) -> EmployeeMapper.mapToEmployeeDto(employee))
         //.collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<EmployeeDto> getEmployeesPage(int pageNo, int pageSize, String sortBy, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+        Page<Employee> page = employeeRepository.findAll(pageable);
+
+        List<EmployeeDto> content = page.getContent()
+                .stream()
+                .map(EmployeeMapper::mapToEmployeeDto)
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
     }
 
     @Override

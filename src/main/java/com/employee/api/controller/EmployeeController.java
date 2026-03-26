@@ -1,6 +1,7 @@
 package com.employee.api.controller;
 
 import com.employee.api.dto.EmployeeDto;
+import com.employee.api.dto.PageResponse;
 import com.employee.api.entity.Employee;
 import com.employee.api.repository.EmployeeRepository;
 import com.employee.api.service.EmployeeService;
@@ -79,4 +80,14 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeDto);
     }
 
+    // http://localhost:8080/api/employees/page?pageNo=0&pageSize=5&sortBy=firstName&sortDir=asc
+    @GetMapping("/page")
+    public ResponseEntity<PageResponse<EmployeeDto>> getEmployeesPage(
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+        return ResponseEntity.ok(employeeService.getEmployeesPage(pageNo, pageSize, sortBy, sortDir));
+    }
 }

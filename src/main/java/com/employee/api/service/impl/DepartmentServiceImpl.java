@@ -1,12 +1,17 @@
 package com.employee.api.service.impl;
 
 import com.employee.api.dto.DepartmentDto;
+import com.employee.api.dto.PageResponse;
 import com.employee.api.entity.Department;
 import com.employee.api.exception.ResourceNotFoundException;
 import com.employee.api.mapper.DepartmentMapper;
 import com.employee.api.repository.DepartmentRepository;
 import com.employee.api.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +68,40 @@ public class DepartmentServiceImpl  implements DepartmentService {
                 // Stream<DepartmentDto> => List<DepartmentDto>
                 .toList(); // List<DepartmentDto> (Stream => List)
                 //.map((department) -> DepartmentMapper.mapToDepartmentDto(department))
+    }
+
+    /*
+   pageNo - 페이지 번호 (0부터 시작),
+   pageSize - 페이지당 데이터 수
+   sortBy - 정렬 기준 컬럼: `id`, `departmentName`, `departmentDescription`
+   sortDir - 정렬 방향: `asc` / `desc`
+    */
+    @Override
+    public PageResponse<DepartmentDto> getDepartmentsPage(int pageNo, int pageSize, String sortBy, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort); // Pageable 객체 생성 (페이지 번호, 페이지 크기, 정렬 정보 포함)
+        Page<Department> page = departmentRepository.findAll(pageable);
+        // Page<Department> (엔티티 페이지), findAll(Pageable pageable) 메서드는 페이지네이션과 정렬을 지원하는 메서드로,
+        // Pageable 객체를 인자로 받아 해당 페이지에 대한 데이터를 반환합니다.
+
+        // List<Department> => Stream<Department> => Stream<DepartmentDto> => List<DepartmentDto>
+        List<DepartmentDto> content = page.getContent()
+                .stream()
+                //.map(dept -> DepartmentMapper.mapToDepartmentDto(dept))
+                .map(DepartmentMapper::mapToDepartmentDto)
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast() // isLast()는 현재 페이지가 마지막 페이지인지 여부를 반환하는 메서드입니다. true이면 마지막 페이지, false이면 마지막 페이지가 아님
+        );
     }
 
     @Override
